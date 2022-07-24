@@ -228,7 +228,7 @@ class ShapeAwareIdentityExtractor(nn.Module):
 
         v_id = F.normalize(self.f_id(F.interpolate((i_source - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
 
-        v_sid = torch.cat((c_fuse, v_id), dim=1)
+        v_sid = torch.cat((c_fuse, v_id), dim=1) # (1, 257+512)
         return v_sid
 
 class Generator(nn.Module):
@@ -252,7 +252,7 @@ class Generator(nn.Module):
     def forward(self, i_source, i_target):
         id_vector = self.id_extractor(i_source, i_target)
         z_enc, x = self.encoder(i_target)
-        z_dec = self.decoder(x, id_vector)
+        z_dec = self.decoder(x, id_vector) # (B, 256, 64, 64)
 
         i_r, i_low, m_r, m_low = self.sff_module(i_target, z_enc, z_dec, id_vector)
 

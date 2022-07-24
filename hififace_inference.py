@@ -46,7 +46,7 @@ tensor2pil_transform = transforms.ToPILImage()
 if args.source_image_path is not None and args.target_image_path is not None:
     target_img = Image.open(args.target_image_path)
     target_img = target_img.convert('RGB')
-    target_img = pil2tensor_transform(target_img)
+    target_img = pil2tensor_transform(target_img) # (3, 256, 256)
     target_img = target_img.unsqueeze(0)
     target_img = target_img.to(device)
 
