@@ -6,6 +6,7 @@ import torch
 import torchvision
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
+from torchvision import transforms
 
 from util import instantiate_from_config
 
@@ -26,7 +27,10 @@ class HifiFace(pl.LightningModule):
         return i_r
 
     def forward(self, source_img, target_img):
-        i_r, _, _, _ = self.generator(source_img, target_img)
+        i_r, i_low, m_r, m_low = self.generator(source_img, target_img)
+        # output_img = m_r.cpu().clamp(0, 1).squeeze()
+        # output_img = transforms.ToPILImage()(output_img)
+        # output_img.save('mask.png')
         return i_r
 
     def training_step(self, batch, batch_idx):
