@@ -16,6 +16,9 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 from collections import defaultdict
+import cv2
+
+from .preprocess import DataProcessor
 
 
 def same_or_not(percent):
@@ -47,6 +50,12 @@ class FaceDataset(Dataset):
         
         self._build_dataset()
 
+        self.data_processor = DataProcessor()
+
+        self.transform = transforms.Compose([transforms.Resize((256, 256)),
+                                             transforms.CenterCrop((256, 256)),
+                                             transforms.ToTensor()])
+
     def __getitem__(self, index):
         ## 1) Get the correspoind video and source image frame index
         main_idx, sub_idx = self._get_data(index)
@@ -67,14 +76,53 @@ class FaceDataset(Dataset):
             same = torch.zeros(1)
         
         ## 3) Get the images
-        src_img_fp = self.video_name_to_imgs_list_dict[choose_video][s_idx]
-        src_img_fp = osp.join(self.data_root, src_img_fp + ".jpg")
+        src_fp = self.video_name_to_imgs_list_dict[choose_video][s_idx]
+        src_img_fp = osp.join(self.data_root, src_fp + ".jpg")
+        _, src_file_name = osp.split(src_fp)
         s_img = Image.open(src_img_fp).convert('RGB')
 
-        f_img_fp = self.video_name_to_imgs_list_dict[choose_video][t_idx]
-        f_img_fp = osp.join(self.data_root, f_img_fp + ".jpg")
+        f_fp = self.video_name_to_imgs_list_dict[choose_video][t_idx]
+        f_img_fp = osp.join(self.data_root, f_fp + ".jpg")
+        _, f_file_name = osp.split(f_fp)
         f_img = Image.open(f_img_fp).convert('RGB')
+
+        ## 4) Align the face
+        ## Load the landmarks
+        abs_video_dir = osp.join(self.data_root, choose_video)
         
+        src_lm_path = osp.join(abs_video_dir, "landmarks", f"{src_file_name}.txt")
+        raw_lm = np.loadtxt(src_lm_path).astype(np.float32) # (68, 2)
+        raw_lm[:, -1] = s_img.size[0] - 1 - raw_lm[:, -1]
+
+        s_img, lm_affine, mat, mat_inv = self.data_processor(np.array(s_img), raw_lm)
+
+        tgt_lm_path = osp.join(abs_video_dir, "landmarks", f"{f_file_name}.txt")
+        raw_lm = np.loadtxt(tgt_lm_path).astype(np.float32) # (68, 2)
+        raw_lm[:, -1] = f_img.size[0] - 1 - raw_lm[:, -1]
+
+        tgt_img, lm_affine, tgt_mat, mat_inv = self.data_processor(np.array(f_img), raw_lm)
+
+        print(s_img.shape, tgt_img.shape)
+        cv2.imwrite("src.jpg", s_img)
+        cv2.imwrite("tgt.jpg", tgt_img)
+
+        ## 5) Read the face mask of target image
+        msk_img_fp = osp.join(abs_video_dir, "mask_refine", f"{f_file_name}.png")
+        msk_img = Image.open(msk_img_fp).convert('RGB')
+        msk_img = cv2.warpAffine(np.array(msk_img), tgt_mat, (256, 256), borderValue=(0,0,0))
+
+        if self.transform is not None:
+            s_img = self.transform(s_img)
+            tgt_img = self.transform(tgt_img)
+            tgt_msk_img = self.transform(msk_img)
+        
+        return {
+            'target_image': tgt_img,
+            'source_image': s_img,
+            'target_mask': tgt_msk_img,
+            'same': same,
+        }
+
 
     def __len__(self):
         return sum([x for x in self.total_frames_list])
