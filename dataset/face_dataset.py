@@ -116,10 +116,9 @@ class FaceDataset(Dataset):
         return {
             'target_image': tgt_img,
             'source_image': s_img,
-            'target_mask': tgt_msk_img,
+            'target_mask': tgt_msk_img[:1, ...],
             'same': same,
         }
-
 
     def __len__(self):
         return sum([x for x in self.total_frames_list])
