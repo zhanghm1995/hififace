@@ -190,6 +190,6 @@ class HifiFace(pl.LightningModule):
         trainset = instantiate_from_config(self.hp.dataset.train)
         return DataLoader(trainset, **self.hp.dataset.train.dataloader)
 
-    def val_dataloader(self):
-        valset = instantiate_from_config(self.hp.dataset.validation)
-        return DataLoader(valset, **self.hp.dataset.validation.dataloader)
+    # def val_dataloader(self):
+    #     valset = instantiate_from_config(self.hp.dataset.validation)
+    #     return DataLoader(valset, **self.hp.dataset.validation.dataloader)

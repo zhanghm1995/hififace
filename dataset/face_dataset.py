@@ -90,31 +90,28 @@ class FaceDataset(Dataset):
         ## Load the landmarks
         abs_video_dir = osp.join(self.data_root, choose_video)
         
-        src_lm_path = osp.join(abs_video_dir, "landmarks", f"{src_file_name}.txt")
+        src_lm_path = osp.join(abs_video_dir, "face_image", "landmarks", f"{src_file_name}.txt")
         raw_lm = np.loadtxt(src_lm_path).astype(np.float32) # (68, 2)
         raw_lm[:, -1] = s_img.size[0] - 1 - raw_lm[:, -1]
 
         s_img, lm_affine, mat, mat_inv = self.data_processor(np.array(s_img), raw_lm)
 
-        tgt_lm_path = osp.join(abs_video_dir, "landmarks", f"{f_file_name}.txt")
+        tgt_lm_path = osp.join(abs_video_dir, "face_image", "landmarks", f"{f_file_name}.txt")
         raw_lm = np.loadtxt(tgt_lm_path).astype(np.float32) # (68, 2)
         raw_lm[:, -1] = f_img.size[0] - 1 - raw_lm[:, -1]
 
         tgt_img, lm_affine, tgt_mat, mat_inv = self.data_processor(np.array(f_img), raw_lm)
 
-        print(s_img.shape, tgt_img.shape)
-        cv2.imwrite("src.jpg", s_img)
-        cv2.imwrite("tgt.jpg", tgt_img)
-
         ## 5) Read the face mask of target image
-        msk_img_fp = osp.join(abs_video_dir, "mask_refine", f"{f_file_name}.png")
+        msk_img_fp = osp.join(abs_video_dir, "face_ear_mask", f"{f_file_name}.png")
         msk_img = Image.open(msk_img_fp).convert('RGB')
         msk_img = cv2.warpAffine(np.array(msk_img), tgt_mat, (256, 256), borderValue=(0,0,0))
+        msk_img = cv2.dilate(msk_img, np.ones((7, 7), np.uint8), iterations=1)
 
         if self.transform is not None:
-            s_img = self.transform(s_img)
-            tgt_img = self.transform(tgt_img)
-            tgt_msk_img = self.transform(msk_img)
+            s_img = self.transform(Image.fromarray(s_img))
+            tgt_img = self.transform(Image.fromarray(tgt_img))
+            tgt_msk_img = self.transform(Image.fromarray(msk_img))
         
         return {
             'target_image': tgt_img,

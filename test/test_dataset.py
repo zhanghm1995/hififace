@@ -14,8 +14,8 @@ sys.path.append('../')
 
 def test_FaceDataset():
     from dataset.face_dataset import FaceDataset
-    dataset = FaceDataset(data_root="data/HDTF_preprocessed",
-                          split="data/train.txt")
+    dataset = FaceDataset(data_root="data/HDTF_face3dmmformer/train",
+                          split="data/train_HDTF_face3dmmformer.txt")
     print(len(dataset))
 
     dataset[170]
