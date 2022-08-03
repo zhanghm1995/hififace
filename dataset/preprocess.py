@@ -20,7 +20,7 @@ class DataProcessor(object):
         self.lm3d = load_lm3d(lm3d_fp)
     
     def __call__(self, img, ldmk):
-        img, lm_affine, mat = Preprocess(img, ldmk, self.lm3d)
+        img, lm_affine, mat = Preprocess(img, ldmk, self.lm3d, target_size=256)
 
         mat_inv = np.array([[1 / mat[0, 0], 0, -mat[0, 2] / mat[0, 0]],
                             [0, 1 / mat[1, 1], -mat[1, 2] / mat[1, 1]]])

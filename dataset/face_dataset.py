@@ -114,8 +114,8 @@ class FaceDataset(Dataset):
             tgt_msk_img = self.transform(Image.fromarray(msk_img))
         
         return {
-            'target_image': tgt_img,
             'source_image': s_img,
+            'target_image': tgt_img,
             'target_mask': tgt_msk_img[:1, ...],
             'same': same,
         }
