@@ -45,7 +45,7 @@ dataset:
     target: "dataset.face_dataset.FaceDataset"
     params:
       data_root: "data/HDTF_face3dmmformer/train"
-      split: "data/train_HDTF_face3dmmformer.txt"
+      split: "data/train_WDA_ChrisMurphy0_000.txt"
       same_rate: 20
     dataloader:
       batch_size: 8
