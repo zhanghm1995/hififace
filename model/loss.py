@@ -104,6 +104,30 @@ class SIDLoss(nn.Module):
                           "sid_loss": sid_loss,
                           }
 
+
+class EditLoss(nn.Module):
+    def __init__(self):
+        super(EditLoss, self).__init__()
+
+    def forward(self, p_e, p_s):
+
+
+class RenderLoss(nn.Module):
+    def __init__(self):
+        super(RenderLoss).__init__()
+        
+        self.face_model = ParametricFaceModel()
+    
+    def forward(self, i_r_params, i_low_params, gt_params):
+        ## 1) Note: here we use the landmarks to compute the loss
+        _, _, _, i_r_ldmk = self.face_model.compute_for_render(i_r_params)
+        _, _, _, i_low_ldmk = self.face_model.compute_for_render(i_low_params)
+        
+        _, _, _, gt_ldmk = self.face_model.compute_for_render(gt_params)
+
+
+
+
 class RealismLoss(nn.Module):
     def __init__(self):
         super(RealismLoss, self).__init__()
@@ -193,6 +217,74 @@ class GLoss(nn.Module):
                 "m_r": m_r,
                 "m_low": m_low,}
 
+
+class GExpressionLoss(nn.Module):
+    def __init__(self, f_3d_checkpoint_path, f_id_checkpoint_path, realism_config, sid_config):
+        super(GLoss, self).__init__()
+        self.f_3d = ReconNetWrapper(net_recon='resnet50', use_last_fc=False)
+        self.f_3d.load_state_dict(torch.load(f_3d_checkpoint_path, map_location='cpu')['net_recon'])
+        self.f_3d.eval()
+        
+        self.face_model = ParametricFaceModel()
+
+        self.f_id = iresnet100(pretrained=False, fp16=False)
+        self.f_id.load_state_dict(torch.load(f_id_checkpoint_path, map_location='cpu'))
+        self.f_id.eval()
+
+        self.realism_loss = RealismLoss(**realism_config)
+        self.sid_loss = SIDLoss(**sid_config)
+
+    def forward(self, i_s, i_t, i_r, i_low, i_cycle, m_tar, m_r, m_low, d_r, same):
+        # region 3DMM
+        with torch.no_grad():
+            c_s = self.f_3d(F.interpolate(i_s, size=224, mode='bilinear'))
+            c_t = self.f_3d(F.interpolate(i_t, size=224, mode='bilinear'))
+        c_r = self.f_3d(F.interpolate(i_r, size=224, mode='bilinear'))
+        c_low = self.f_3d(F.interpolate(i_low, size=224, mode='bilinear'))
+
+        '''
+        (B, 257)
+        80 # id layer
+        64 # exp layer
+        80 # tex layer
+        3  # angle layer
+        27 # gamma layer
+        2  # tx, ty
+        1  # tz
+        '''
+        with torch.no_grad():
+            c_r_edit = c_s.clone()
+            c_r_edit[:, 80:144] = c_r[:, 80:144]
+
+            c_low_edit = c_s.clone()
+            c_low_edit[:, 80:144] = c_low[:, 80:144]
+
+            _, _, _, q_s = self.face_model.compute_for_render(c_s)
+
+        _, _, _, q_r = self.face_model.compute_for_render(c_r_edit)
+        _, _, _, q_low = self.face_model.compute_for_render(c_low_edit)
+        # endregion
+
+        # region arcface
+        with torch.no_grad():
+            v_id_i_s = F.normalize(self.f_id(F.interpolate((i_s - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
+
+        v_id_i_r = F.normalize(self.f_id(F.interpolate((i_r - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
+        v_id_i_low = F.normalize(self.f_id(F.interpolate((i_low - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
+        # endregion
+
+        sid_loss, sid_loss_dict = self.sid_loss(q_s, q_r, q_low, v_id_i_s, v_id_i_r, v_id_i_low)
+        realism_loss, realism_loss_dict = self.realism_loss(m_tar, m_low, m_r, i_t, i_r, i_low, i_cycle, d_r, same)
+
+        g_loss = sid_loss + realism_loss
+
+        return g_loss, {**sid_loss_dict,
+                        **realism_loss_dict,
+                        "g_loss": g_loss,
+                        }, \
+               {"m_tar": m_tar,
+                "m_r": m_r,
+                "m_low": m_low,}
 
 
 class DLoss(nn.Module):
