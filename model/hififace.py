@@ -224,9 +224,11 @@ class ShapeAwareIdentityExtractor(nn.Module):
     def forward(self, i_source, i_target):
         c_s = self.f_3d(i_source)
         c_t = self.f_3d(i_target)
-        c_fuse = torch.cat((c_s[:, :80], c_t[:, 80:]), dim=1)
+        
+        # c_fuse = torch.cat((c_s[:, :80], c_t[:, 80:]), dim=1)
+        c_fuse = torch.cat((c_t[:, :80], c_s[:, 80:144], c_t[:, 144:]), dim=1)
 
-        v_id = F.normalize(self.f_id(F.interpolate((i_source - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
+        v_id = F.normalize(self.f_id(F.interpolate((i_target - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
 
         v_sid = torch.cat((c_fuse, v_id), dim=1) # (1, 257+512)
         return v_sid
