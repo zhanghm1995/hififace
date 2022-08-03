@@ -105,27 +105,25 @@ class SIDLoss(nn.Module):
                           }
 
 
-class EditLoss(nn.Module):
-    def __init__(self):
-        super(EditLoss, self).__init__()
+# class EditLoss(nn.Module):
+#     def __init__(self):
+#         super(EditLoss, self).__init__()
 
-    def forward(self, p_e, p_s):
+#     def forward(self, p_e, p_s):
 
 
-class RenderLoss(nn.Module):
-    def __init__(self):
-        super(RenderLoss).__init__()
+# class RenderLoss(nn.Module):
+#     def __init__(self):
+#         super(RenderLoss).__init__()
         
-        self.face_model = ParametricFaceModel()
+#         self.face_model = ParametricFaceModel()
     
-    def forward(self, i_r_params, i_low_params, gt_params):
-        ## 1) Note: here we use the landmarks to compute the loss
-        _, _, _, i_r_ldmk = self.face_model.compute_for_render(i_r_params)
-        _, _, _, i_low_ldmk = self.face_model.compute_for_render(i_low_params)
+#     def forward(self, i_r_params, i_low_params, gt_params):
+#         ## 1) Note: here we use the landmarks to compute the loss
+#         _, _, _, i_r_ldmk = self.face_model.compute_for_render(i_r_params)
+#         _, _, _, i_low_ldmk = self.face_model.compute_for_render(i_low_params)
         
-        _, _, _, gt_ldmk = self.face_model.compute_for_render(gt_params)
-
-
+#         _, _, _, gt_ldmk = self.face_model.compute_for_render(gt_params)
 
 
 class RealismLoss(nn.Module):
@@ -220,7 +218,7 @@ class GLoss(nn.Module):
 
 class GExpressionLoss(nn.Module):
     def __init__(self, f_3d_checkpoint_path, f_id_checkpoint_path, realism_config, sid_config):
-        super(GLoss, self).__init__()
+        super(GExpressionLoss, self).__init__()
         self.f_3d = ReconNetWrapper(net_recon='resnet50', use_last_fc=False)
         self.f_3d.load_state_dict(torch.load(f_3d_checkpoint_path, map_location='cpu')['net_recon'])
         self.f_3d.eval()
