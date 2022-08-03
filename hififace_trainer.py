@@ -54,7 +54,7 @@ logger.watch(hififace_model)
 trainer = pl.Trainer(
     gpus=-1 if args.gpus is None else args.gpus,
     logger=logger,
-    callbacks=[checkpoint_callback],
+    # callbacks=[checkpoint_callback],
     weights_save_path=save_path,
     resume_from_checkpoint=args.resume_checkpoint_path,
     **hp.trainer
