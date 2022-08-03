@@ -97,7 +97,8 @@ class SIDLoss(nn.Module):
         inner_product_low = (torch.bmm(v_id_I_s.unsqueeze(1), v_id_I_low.unsqueeze(2)).squeeze())
         id_loss = self.l1(torch.ones_like(inner_product_r), inner_product_r) + self.l1(torch.ones_like(inner_product_low), inner_product_low)
 
-        sid_loss = 5 * id_loss + 0.5 * shape_loss
+        # sid_loss = 5 * id_loss + 0.5 * shape_loss # zhm: the original one
+        sid_loss = 5 * id_loss + 1.0 * shape_loss
 
         return sid_loss, {"shape_loss": shape_loss,
                           "id_loss": id_loss,
@@ -265,7 +266,7 @@ class GExpressionLoss(nn.Module):
 
         # region arcface
         with torch.no_grad():
-            v_id_i_s = F.normalize(self.f_id(F.interpolate((i_s - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
+            v_id_i_s = F.normalize(self.f_id(F.interpolate((i_t - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
 
         v_id_i_r = F.normalize(self.f_id(F.interpolate((i_r - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
         v_id_i_low = F.normalize(self.f_id(F.interpolate((i_low - 0.5)/0.5, size=112, mode='bilinear')), dim=-1, p=2)
